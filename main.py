@@ -86,3 +86,16 @@ def get_next_available_ip():
         raise Exception("No IP addresses available")
     else:
         return next_ip
+
+def generate_peer_keys():
+    # TODO: add actual generation
+
+    generated_private_key = "priv_key_placeholder"
+    generated_public_key = "pub_key_placeholder"
+    generated_pre_shared_key = "psk_placeholder"
+
+    return {
+        "private_key": generated_private_key,
+        "public_key": generated_public_key,
+        "pre_shared_key": generated_pre_shared_key,
+    }
