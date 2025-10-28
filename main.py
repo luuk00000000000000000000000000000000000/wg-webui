@@ -90,8 +90,11 @@ def get_next_available_ip():
 def generate_peer_keys():
     # TODO: add actual generation
 
+    # wg genkey > privatekey
     generated_private_key = "priv_key_placeholder"
+    # wg pubkey < privatekey > publickey
     generated_public_key = "pub_key_placeholder"
+    # wg genpsk
     generated_pre_shared_key = "psk_placeholder"
 
     return {
