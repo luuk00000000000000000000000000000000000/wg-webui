@@ -97,11 +97,7 @@ def generate_peer_keys():
     # wg genpsk
     generated_pre_shared_key = "psk_placeholder"
 
-    return {
-        "private_key": generated_private_key,
-        "public_key": generated_public_key,
-        "pre_shared_key": generated_pre_shared_key,
-    }
+    return (generated_private_key, generated_public_key, generated_pre_shared_key)
 
 def get_server_pubkey():
     # TODO: add actual key retrieval
