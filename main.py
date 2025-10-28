@@ -1,5 +1,6 @@
 import os
 import json
+import re
 
 ###
 ### Configuration templates
@@ -74,3 +75,14 @@ def add_peer_to_wg_config(peer_name):
                                                               public_key = peer_data["public_key"],
                                                               pre_shared_key = peer_data["pre_shared_key"],
                                                               ipv4_segment = peer_data["ipv4_segment"]))
+        
+def get_next_available_ip():
+    with open(CONFIG["WG_CONFIG_FILE"], "r") as wireguard_config:
+        ip_segments = re.findall(r"^AllowedIPs = (?:[0-9]{1,3}\.){3}([0-9]{1,3})", wireguard_config.read(), flags=re.MULTILINE)
+
+    next_ip = int(max(ip_segments)) + 1
+
+    if next_ip > 254:
+        raise Exception("No IP addresses available")
+    else:
+        return next_ip
