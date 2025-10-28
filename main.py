@@ -80,7 +80,10 @@ def get_next_available_ip():
     with open(CONFIG["WG_CONFIG_FILE"], "r") as wireguard_config:
         ip_segments = re.findall(r"^AllowedIPs = (?:[0-9]{1,3}\.){3}([0-9]{1,3})", wireguard_config.read(), flags=re.MULTILINE)
 
-    next_ip = int(max(ip_segments)) + 1
+    if ip_segments:
+        next_ip = int(max(ip_segments)) + 1
+    else:
+        next_ip = 2
 
     if next_ip > 254:
         raise Exception("No IP addresses available")
