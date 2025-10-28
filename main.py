@@ -47,3 +47,11 @@ def save_peer_data(peer_name, private_key, ipv4_segment, public_key, pre_shared_
         peer_data_file.write(json.dumps(peer_data))
 
     os.chmod(peer_data_file_path, 0o600)
+
+def get_peer_data(peer_name):
+    peer_data_file_path = os.path.join(CONFIG["PEER_DATA_DIR"], peer_name + "-data.json")
+
+    with open(peer_data_file_path, "r") as peer_data_file:
+        peer_data = json.loads(peer_data_file.read())
+
+    return peer_data
