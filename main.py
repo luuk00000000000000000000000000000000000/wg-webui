@@ -102,3 +102,13 @@ def generate_peer_keys():
         "public_key": generated_public_key,
         "pre_shared_key": generated_pre_shared_key,
     }
+
+def get_server_pubkey():
+    # TODO: add actual key retrieval
+
+    with open(CONFIG["WG_CONFIG_FILE"], "r") as wireguard_config:
+        server_private_key = re.findall(r"^PrivateKey = ([A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=)", wireguard_config.read(), flags=re.MULTILINE)
+
+    # do wg pubkey < server_private_key
+    server_public_key = "server_pub_key_placeholder"
+    return server_public_key
