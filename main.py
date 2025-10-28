@@ -1,36 +1,49 @@
 import os
+import json
+
+###
+### Configuration templates
+###
+
+PEER_ALL_TRAFFIC_TEMPLATE = """
+[Interface]
+PrivateKey = {private_key}
+Address = 192.168.42.{ipv4_segment:d}/32
+
+[Peer]
+PublicKey = {public_key}
+PresharedKey = {pre_shared_key}
+AllowedIPs = 0.0.0.0/0, ::/0
+Endpoint = wireguard.example.com:51820
+"""
+
+PEER_LAN_TRAFFIC_TEMPLATE = """
+[Interface]
+PrivateKey = {private_key}
+Address = 192.168.42.{ipv4_segment:d}/32
+
+[Peer]
+PublicKey = {public_key}
+PresharedKey = {pre_shared_key}
+AllowedIPs = 192.168.2.0/24
+Endpoint = wireguard.example.com:51820
+"""
 
 CONFIG = {
-    "CLIENT_CONFIG_DIR": "client-configs",
-    "CLIENT_CONFIG_TEMPLATE_DIR": "client-config-templates"
+    "PEER_DATA_DIR": "peer-data"
 }
 
-def generate_client_configs(client_name, priv_key, ipv4_segment, public_key, psk):
-	# steps:
-    # 1. get and modify templates with argument values
-    # 2. save configs and set permissions to 0o600 (umask 0o177)
-    
-    config_all_traffic_path = os.path.join(CONFIG["CLIENT_CONFIG_DIR"], client_name + "-all-traffic.conf")
-    
-    with open(os.path.join(CONFIG["CLIENT_CONFIG_TEMPLATE_DIR"], "client-all-traffic.conf"), "r") as template, open(config_all_traffic_path, "x") as clientcfg:
-        modified_template = template.read().replace("[PEER_PRIVATE_KEY]", priv_key)
-        modified_template = modified_template.replace("[PEER_IPV4_ADDR_LAST_DIGIT]", ipv4_segment)
-        modified_template = modified_template.replace("[ENDPOINT_PUBLIC_KEY]", public_key)
-        modified_template = modified_template.replace("[PRESHARED_KEY]", psk)
-        
-        clientcfg.write(modified_template)
-    
-    os.chmod(config_all_traffic_path, 0o600)
-    
-    
-    config_specific_traffic_path = os.path.join(CONFIG["CLIENT_CONFIG_DIR"], client_name + "-specific-traffic.conf")
-    
-    with open(os.path.join(CONFIG["CLIENT_CONFIG_TEMPLATE_DIR"], "client-specific-traffic.conf"), "r") as template, open(config_specific_traffic_path, "x") as clientcfg:
-        modified_template = template.read().replace("[PEER_PRIVATE_KEY]", priv_key)
-        modified_template = modified_template.replace("[PEER_IPV4_ADDR_LAST_DIGIT]", ipv4_segment)
-        modified_template = modified_template.replace("[ENDPOINT_PUBLIC_KEY]", public_key)
-        modified_template = modified_template.replace("[PRESHARED_KEY]", psk)
-        
-        clientcfg.write(modified_template)
-    
-    os.chmod(config_all_traffic_path, 0o600)
+def save_peer_data(peer_name, private_key, ipv4_segment, public_key, pre_shared_key):
+    peer_data = {
+        "private_key": private_key,
+        "ipv4_segment": ipv4_segment,
+        "public_key": public_key,
+        "pre_shared_key": pre_shared_key
+    }
+
+    peer_data_file_path = os.path.join(CONFIG["PEER_DATA_DIR"], peer_name + "-data.json")
+
+    with open(peer_data_file_path, "x") as peer_data_file:
+        peer_data_file.write(json.dumps(peer_data))
+
+    os.chmod(peer_data_file_path, 0o600)
