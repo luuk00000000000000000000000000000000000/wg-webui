@@ -108,3 +108,16 @@ def get_server_pubkey():
     # do wg pubkey < server_private_key
     server_public_key = "server_pub_key_placeholder"
     return server_public_key
+
+def get_list_of_peers():
+    data_files = os.listdir(CONFIG["PEER_DATA_DIR"])
+
+    peers = []
+
+    for file in data_files:
+        regex_search = re.search(r"^([a-z0-9]*)(-data\.json)$", file)
+
+        if regex_search != None:
+            peers.append(regex_search.group(1))
+
+    return peers
