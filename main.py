@@ -29,8 +29,17 @@ AllowedIPs = 192.168.2.0/24
 Endpoint = wireguard.example.com:51820
 """
 
+PEER_WG_CONFIG_TEMPLATE = """
+# Name: {name}
+[Peer]
+PublicKey = {public_key}
+PresharedKey = {pre_shared_key}
+AllowedIPs = 192.168.42.{ipv4_segment:d}/32
+"""
+
 CONFIG = {
-    "PEER_DATA_DIR": "peer-data"
+    "PEER_DATA_DIR": "peer-data",
+    "WG_CONFIG_FILE": "sample.conf"
 }
 
 def save_peer_data(peer_name, private_key, ipv4_segment, public_key, pre_shared_key):
@@ -55,3 +64,13 @@ def get_peer_data(peer_name):
         peer_data = json.loads(peer_data_file.read())
 
     return peer_data
+
+def add_peer_to_wg_config(peer_name):
+    peer_data = get_peer_data(peer_name)
+
+    with open(CONFIG["WG_CONFIG_FILE"], "a") as wireguard_config:
+        wireguard_config.write("\n")
+        wireguard_config.write(PEER_WG_CONFIG_TEMPLATE.format(name = peer_name,
+                                                              public_key = peer_data["public_key"],
+                                                              pre_shared_key = peer_data["pre_shared_key"],
+                                                              ipv4_segment = peer_data["ipv4_segment"]))
