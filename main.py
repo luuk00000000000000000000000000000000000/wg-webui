@@ -1,6 +1,13 @@
 import os
 import json
 import re
+import base64
+import io
+
+from flask import Flask, render_template
+
+import qrcode
+from qrcode.image.pure import PyPNGImage
 
 ###
 ### Configuration templates
@@ -42,6 +49,8 @@ CONFIG = {
     "PEER_DATA_DIR": "peer-data",
     "WG_CONFIG_FILE": "sample.conf"
 }
+
+app = Flask(__name__)
 
 def save_peer_data(peer_name, private_key, ipv4_segment, public_key, pre_shared_key):
     peer_data = {
@@ -124,3 +133,45 @@ def get_list_of_peers():
             peers.append(regex_search.group(1))
 
     return peers
+
+def get_peer_configs(peer_name):
+    peer_data = get_peer_data(peer_name)
+
+    peer_config_lan = PEER_LAN_TRAFFIC_TEMPLATE.format(private_key = peer_data["private_key"],
+                                                       ipv4_segment = peer_data["ipv4_segment"],
+                                                       public_key = peer_data["public_key"],
+                                                       pre_shared_key = peer_data["pre_shared_key"])
+    
+    peer_config_all = PEER_ALL_TRAFFIC_TEMPLATE.format(private_key = peer_data["private_key"],
+                                                       ipv4_segment = peer_data["ipv4_segment"],
+                                                       public_key = peer_data["public_key"],
+                                                       pre_shared_key = peer_data["pre_shared_key"])
+    
+    return (peer_config_lan, peer_config_all)
+
+def generate_peer_qr_codes(peer_name):
+    qr_codes = []
+
+    for config in get_peer_configs(peer_name):
+        qr_buffer = io.BytesIO()
+
+        qr_code = qrcode.make(config,
+                              error_correction = qrcode.constants.ERROR_CORRECT_L,
+                              box_size = 4,
+                              image_factory = PyPNGImage)
+        
+        qr_code.save(qr_buffer)
+
+        qr_codes.append(base64.b64encode(qr_buffer.getvalue()).decode('utf-8'))
+
+    return qr_codes
+
+@app.route("/")
+def index():
+    peer_qr_list = []
+
+    for peer in get_list_of_peers():
+        peer_lan_qr, peer_all_qr = generate_peer_qr_codes(peer)
+        peer_qr_list.append({ "name": peer, "lan_qr": peer_lan_qr, "all_qr": peer_all_qr })
+
+    return render_template("index.html", peers = peer_qr_list)
