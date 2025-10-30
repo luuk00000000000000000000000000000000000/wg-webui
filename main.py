@@ -190,7 +190,7 @@ def index():
 
 @app.route("/add", methods = ["POST"])
 def add_peer():
-    peer_name = re.sub(r"[^a-z0-9-]", "", request.args.get("name"))
+    peer_name = re.sub(r"[^a-z0-9-]", "", request.form.get("peer_name"))
 
     peer_list = get_list_of_peers()
 
@@ -207,7 +207,7 @@ def add_peer():
 
 @app.route("/delete", methods = ["POST"])
 def delete_peer():
-    peer_name = re.sub(r"[^a-z0-9-]", "", request.args.get("name"))
+    peer_name = re.sub(r"[^a-z0-9-]", "", request.form.get("peer_name"))
 
     peer_list = get_list_of_peers()
 

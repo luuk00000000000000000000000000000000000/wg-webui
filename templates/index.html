@@ -4,10 +4,24 @@
         <title>wg-webui</title>
     </head>
     <body>
+        <form action="add" method="post">
+            <label>
+                Peer name:
+                <input name="peer_name" placeholder="eg. luuk" pattern="[a-z0-9-]"/>
+            </label>
+            
+            <button>Add peer</button>
+        </form>
+
         {% for peer in peers %}
             <p>{{ peer.name }}</p>
+
             <img src="data:image/png;charset=utf-8;base64,{{ peer.lan_qr }}"/>
             <img src="data:image/png;charset=utf-8;base64,{{ peer.all_qr }}"/>
+            
+            <form action="delete" method="post">
+                <button name="peer_name" value="{{ peer.name }}">Delete peer</button>
+            </form>
         {% endfor %}
     </body>
 </html>
