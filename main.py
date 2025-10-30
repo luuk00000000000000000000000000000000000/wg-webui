@@ -77,11 +77,25 @@ def get_peer_data(peer_name):
 
 def add_peer_to_wg_config(name, public_key, pre_shared_key, ipv4_segment):
     with open(CONFIG["WG_CONFIG_FILE"], "a") as wireguard_config:
-        wireguard_config.write("\n")
         wireguard_config.write(PEER_WG_CONFIG_TEMPLATE.format(name = name,
                                                               public_key = public_key,
                                                               pre_shared_key = pre_shared_key,
                                                               ipv4_segment = ipv4_segment))
+        
+def remove_peer_from_wg_config(name, public_key, pre_shared_key, ipv4_segment):
+    with open(CONFIG["WG_CONFIG_FILE"], "r+") as wireguard_config:
+        config_contents = wireguard_config.read()
+        wireguard_config.seek(0)
+
+        peer_config_section = PEER_WG_CONFIG_TEMPLATE.format(name = name,
+                                                             public_key = public_key,
+                                                             pre_shared_key = pre_shared_key,
+                                                             ipv4_segment = ipv4_segment)
+        
+        rewritten_config_contents = config_contents.replace(peer_config_section, "")
+
+        wireguard_config.write(rewritten_config_contents)
+        wireguard_config.truncate()
         
 def get_next_available_ip():
     with open(CONFIG["WG_CONFIG_FILE"], "r") as wireguard_config:
@@ -125,7 +139,7 @@ def get_list_of_peers():
     peers = []
 
     for file in data_files:
-        regex_search = re.search(r"^([a-z0-9]*)(-data\.json)$", file)
+        regex_search = re.search(r"^([a-z0-9-]*)(-data\.json)$", file)
 
         if regex_search != None:
             peers.append(regex_search.group(1))
@@ -189,4 +203,21 @@ def add_peer():
 
         return redirect(url_for("index"))
     else:
-        abort(400)
+        abort(404)
+
+@app.route("/delete", methods = ["POST"])
+def delete_peer():
+    peer_name = re.sub(r"[^a-z0-9-]", "", request.args.get("name"))
+
+    peer_list = get_list_of_peers()
+
+    if peer_name in peer_list:
+        peer_data = get_peer_data(peer_name)
+
+        remove_peer_from_wg_config(peer_name, peer_data["public_key"], peer_data["pre_shared_key"], peer_data["ipv4_segment"])
+
+        os.remove(os.path.join(CONFIG["PEER_DATA_DIR"], f"{peer_name}-data.json"))
+
+        return redirect(url_for("index"))
+    else:
+        abort(404)
