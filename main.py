@@ -139,12 +139,12 @@ def get_peer_configs(peer_name):
 
     peer_config_lan = PEER_LAN_TRAFFIC_TEMPLATE.format(private_key = peer_data["private_key"],
                                                        ipv4_segment = peer_data["ipv4_segment"],
-                                                       public_key = peer_data["public_key"],
+                                                       public_key = get_server_pubkey(),
                                                        pre_shared_key = peer_data["pre_shared_key"])
     
     peer_config_all = PEER_ALL_TRAFFIC_TEMPLATE.format(private_key = peer_data["private_key"],
                                                        ipv4_segment = peer_data["ipv4_segment"],
-                                                       public_key = peer_data["public_key"],
+                                                       public_key = get_server_pubkey(),
                                                        pre_shared_key = peer_data["pre_shared_key"])
     
     return (peer_config_lan, peer_config_all)
@@ -175,3 +175,4 @@ def index():
         peer_qr_list.append({ "name": peer, "lan_qr": peer_lan_qr, "all_qr": peer_all_qr })
 
     return render_template("index.html", peers = peer_qr_list)
+
