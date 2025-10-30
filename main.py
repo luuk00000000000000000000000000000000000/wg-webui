@@ -164,7 +164,7 @@ def generate_peer_qr_codes(peer_name):
 
     return qr_codes
 
-@app.route("/")
+@app.route("/", methods = ['GET'])
 def index():
     peer_qr_list = []
 
