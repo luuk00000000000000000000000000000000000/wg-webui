@@ -75,15 +75,13 @@ def get_peer_data(peer_name):
 
     return peer_data
 
-def add_peer_to_wg_config(peer_name):
-    peer_data = get_peer_data(peer_name)
-
+def add_peer_to_wg_config(name, public_key, pre_shared_key, ipv4_segment):
     with open(CONFIG["WG_CONFIG_FILE"], "a") as wireguard_config:
         wireguard_config.write("\n")
-        wireguard_config.write(PEER_WG_CONFIG_TEMPLATE.format(name = peer_name,
-                                                              public_key = peer_data["public_key"],
-                                                              pre_shared_key = peer_data["pre_shared_key"],
-                                                              ipv4_segment = peer_data["ipv4_segment"]))
+        wireguard_config.write(PEER_WG_CONFIG_TEMPLATE.format(name = name,
+                                                              public_key = public_key,
+                                                              pre_shared_key = pre_shared_key,
+                                                              ipv4_segment = ipv4_segment))
         
 def get_next_available_ip():
     with open(CONFIG["WG_CONFIG_FILE"], "r") as wireguard_config:
