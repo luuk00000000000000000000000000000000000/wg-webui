@@ -178,6 +178,12 @@ def generate_peer_qr_codes(peer_name):
 
     return qr_codes
 
+def sanitize_peer_name(peer_name):
+    if not peer_name:
+        return False
+    
+    return re.sub(r"[^a-z0-9-]", "", peer_name)
+
 @app.route("/", methods = ["GET"])
 def index():
     peer_qr_list = []
@@ -190,7 +196,10 @@ def index():
 
 @app.route("/add", methods = ["POST"])
 def add_peer():
-    peer_name = re.sub(r"[^a-z0-9-]", "", request.form.get("peer_name"))
+    peer_name = sanitize_peer_name(request.form.get("peer_name"))
+
+    if not peer_name:
+        abort(400)
 
     peer_list = get_list_of_peers()
 
@@ -207,7 +216,10 @@ def add_peer():
 
 @app.route("/delete", methods = ["POST"])
 def delete_peer():
-    peer_name = re.sub(r"[^a-z0-9-]", "", request.form.get("peer_name"))
+    peer_name = sanitize_peer_name(request.form.get("peer_name"))
+
+    if not peer_name:
+        abort(400)
 
     peer_list = get_list_of_peers()
 
@@ -220,4 +232,4 @@ def delete_peer():
 
         return redirect(url_for("index"))
     else:
-        abort(404)
+        abort(400)
