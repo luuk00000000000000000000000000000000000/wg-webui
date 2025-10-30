@@ -4,7 +4,7 @@ import re
 import base64
 import io
 
-from flask import Flask, render_template
+from flask import Flask, render_template, abort, redirect, url_for, request
 
 import qrcode
 from qrcode.image.pure import PyPNGImage
@@ -160,11 +160,11 @@ def generate_peer_qr_codes(peer_name):
         
         qr_code.save(qr_buffer)
 
-        qr_codes.append(base64.b64encode(qr_buffer.getvalue()).decode('utf-8'))
+        qr_codes.append(base64.b64encode(qr_buffer.getvalue()).decode("utf-8"))
 
     return qr_codes
 
-@app.route("/", methods = ['GET'])
+@app.route("/", methods = ["GET"])
 def index():
     peer_qr_list = []
 
@@ -174,3 +174,19 @@ def index():
 
     return render_template("index.html", peers = peer_qr_list)
 
+@app.route("/add", methods = ["POST"])
+def add_peer():
+    peer_name = re.sub(r"[^a-z0-9-]", "", request.args.get("name"))
+
+    peer_list = get_list_of_peers()
+
+    if peer_name not in peer_list:
+        ipv4_segment = get_next_available_ip()
+        private_key, public_key, pre_shared_key = generate_peer_keys()
+
+        save_peer_data(peer_name, private_key, ipv4_segment, public_key, pre_shared_key)
+        add_peer_to_wg_config(peer_name, public_key, pre_shared_key, ipv4_segment)
+
+        return redirect(url_for("index"))
+    else:
+        abort(400)
