@@ -111,15 +111,15 @@ def generate_peer_keys():
 
     return (generated_private_key, generated_public_key, generated_pre_shared_key)
 
-def get_server_pubkey():
+def get_endpoint_pubkey():
     # TODO: add actual key retrieval
 
     with open(CONFIG["WG_CONFIG_FILE"], "r") as wireguard_config:
-        server_private_key = re.findall(r"^PrivateKey = ([A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=)", wireguard_config.read(), flags=re.MULTILINE)
+        endpoint_private_key = re.findall(r"^PrivateKey = ([A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=)", wireguard_config.read(), flags=re.MULTILINE)
 
     # do wg pubkey < server_private_key
-    server_public_key = "server_pub_key_placeholder"
-    return server_public_key
+    endpoint_public_key = "endpoint_pub_key_placeholder"
+    return endpoint_public_key
 
 def get_list_of_peers():
     data_files = os.listdir(CONFIG["PEER_DATA_DIR"])
@@ -139,12 +139,12 @@ def get_peer_configs(peer_name):
 
     peer_config_lan = PEER_LAN_TRAFFIC_TEMPLATE.format(private_key = peer_data["private_key"],
                                                        ipv4_segment = peer_data["ipv4_segment"],
-                                                       public_key = get_server_pubkey(),
+                                                       public_key = get_endpoint_pubkey(),
                                                        pre_shared_key = peer_data["pre_shared_key"])
     
     peer_config_all = PEER_ALL_TRAFFIC_TEMPLATE.format(private_key = peer_data["private_key"],
                                                        ipv4_segment = peer_data["ipv4_segment"],
-                                                       public_key = get_server_pubkey(),
+                                                       public_key = get_endpoint_pubkey(),
                                                        pre_shared_key = peer_data["pre_shared_key"])
     
     return (peer_config_lan, peer_config_all)
