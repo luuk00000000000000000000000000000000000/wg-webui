@@ -233,3 +233,20 @@ def delete_peer():
         return redirect(url_for("index"))
     else:
         abort(400)
+
+@app.route("/peer-config/<config_type>", methods = ["GET"])
+def get_config(config_type):
+    peer_name = sanitize_peer_name(request.form.get("peer_name"))
+    if not peer_name:
+        abort(400)
+
+    config_type = {"lan": 0, "all": 1}.get(config_type, -1)
+    if config_type is -1:
+        abort(404)
+
+    peer_list = get_list_of_peers()
+
+    if peer_name in peer_list:
+        return get_peer_configs(peer_name)[config_type]
+    else:
+        abort(404)
