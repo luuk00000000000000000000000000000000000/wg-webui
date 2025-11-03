@@ -24,6 +24,7 @@
                 <p>
                     <a href="{{ url_for("get_config", config_type = "lan", peer_name = peer.name) }}" download="{{ peer.name }}-lan.conf">download lan config</a>
                     <a href="{{ url_for("get_config", config_type = "all", peer_name = peer.name) }}" download="{{ peer.name }}-all.conf">download all config</a>
+                    <a href="{{ url_for("get_config", config_type = "zip", peer_name = peer.name) }}" download="{{ peer.name }}-bundle.zip">download config bundle</a>
                 </p>
 
                 <form action="delete" method="post">

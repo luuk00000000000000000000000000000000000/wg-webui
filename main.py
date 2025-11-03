@@ -3,6 +3,7 @@ import json
 import re
 import base64
 import io
+import zipfile
 
 from flask import Flask, render_template, abort, redirect, url_for, request
 
@@ -178,6 +179,18 @@ def generate_peer_qr_codes(peer_name):
 
     return qr_codes
 
+def generate_peer_config_bundle(peer_name):
+    peer_config_lan, peer_config_all = get_peer_configs(peer_name)
+
+    zip_buffer = io.BytesIO()
+
+    with zipfile.ZipFile(zip_buffer, "x", zipfile.ZIP_DEFLATED) as zip_file:
+        for file_name, data in [(f"{peer_name}-lan.conf", peer_config_lan),
+                                (f"{peer_name}-all.conf", peer_config_all)]:
+            zip_file.writestr(file_name, data)
+
+    return zip_buffer.getvalue()
+
 def sanitize_peer_name(peer_name):
     if not peer_name:
         return False
@@ -240,13 +253,16 @@ def get_config(config_type, peer_name):
     if not peer_name:
         abort(400)
 
-    config_type = {"lan": 0, "all": 1}.get(config_type, -1)
+    config_type = {"lan": 0, "all": 1, "zip": 2}.get(config_type, -1)
     if config_type is -1:
         abort(404)
 
     peer_list = get_list_of_peers()
 
     if peer_name in peer_list:
-        return get_peer_configs(peer_name)[config_type]
+        if config_type is 2:
+            return generate_peer_config_bundle(peer_name)
+        else:
+            return get_peer_configs(peer_name)[config_type]
     else:
         abort(404)
