@@ -2,6 +2,7 @@
 <html>
     <head>
         <title>wg-webui</title>
+        <script src="static/script.js"></script>
     </head>
     <body>
         <form action="add" method="post">
@@ -9,19 +10,26 @@
                 Peer name:
                 <input name="peer_name" placeholder="eg. luuk" pattern="[a-z0-9-]"/>
             </label>
-            
+
             <button>Add peer</button>
         </form>
 
         {% for peer in peers %}
-            <p>{{ peer.name }}</p>
+            <div id="{{ peer.name }}-box" style="border:1px solid black;">
+                <p>{{ peer.name }}</p>
 
-            <img src="data:image/png;charset=utf-8;base64,{{ peer.lan_qr }}"/>
-            <img src="data:image/png;charset=utf-8;base64,{{ peer.all_qr }}"/>
-            
-            <form action="delete" method="post">
-                <button name="peer_name" value="{{ peer.name }}">Delete peer</button>
-            </form>
+                <img src="data:image/png;charset=utf-8;base64,{{ peer.lan_qr }}"/>
+                <img src="data:image/png;charset=utf-8;base64,{{ peer.all_qr }}"/>
+
+                <p>
+                    <a href="{{ url_for("get_config", config_type = "lan", peer_name = peer.name) }}" download="{{ peer.name }}-lan.conf">download lan config</a>
+                    <a href="{{ url_for("get_config", config_type = "all", peer_name = peer.name) }}" download="{{ peer.name }}-all.conf">download all config</a>
+                </p>
+
+                <form action="delete" method="post">
+                    <button name="peer_name" value="{{ peer.name }}">Delete peer</button>
+                </form>
+            </div>
         {% endfor %}
     </body>
 </html>

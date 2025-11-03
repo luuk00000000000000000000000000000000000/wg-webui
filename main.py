@@ -234,9 +234,9 @@ def delete_peer():
     else:
         abort(400)
 
-@app.route("/peer-config/<config_type>", methods = ["GET"])
-def get_config(config_type):
-    peer_name = sanitize_peer_name(request.form.get("peer_name"))
+@app.route("/peer-config/<peer_name>/<config_type>", methods = ["GET"])
+def get_config(config_type, peer_name):
+    peer_name = sanitize_peer_name(peer_name)
     if not peer_name:
         abort(400)
 
