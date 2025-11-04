@@ -1,36 +1,72 @@
 <!doctype html>
 <html>
     <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
         <title>wg-webui</title>
-        <script src="static/script.js"></script>
+        <link rel="stylesheet" href="static/styles.css">
     </head>
     <body>
-        <form action="add" method="post">
-            <label>
-                Peer name:
-                <input name="peer_name" placeholder="eg. luuk" pattern="[a-z0-9-]"/>
-            </label>
+        <div class="main-container">
+            <h1>WireGuard peer management page</h1>
+            <hr>
 
-            <button>Add peer</button>
-        </form>
+            <p class="description">
+                <i>This page is used to add, delete and download WireGuard peer configuration files.</i><br><br>
 
-        {% for peer in peers %}
-            <div id="{{ peer.name }}-box" style="border:1px solid black;">
-                <p>{{ peer.name }}</p>
+                The <i>"LAN-traffic-only"</i> config file only sends traffic for <i>192.168.2.0-192.168.2.255</i> addresses over the WireGuard tunnel, and the <i>"All traffic"</i> config file sends all traffic over the WireGuard tunnel.
+            </p>
 
-                <img src="data:image/png;charset=utf-8;base64,{{ peer.lan_qr }}"/>
-                <img src="data:image/png;charset=utf-8;base64,{{ peer.all_qr }}"/>
 
-                <p>
-                    <a href="{{ url_for("get_config", config_type = "lan", peer_name = peer.name) }}" download="{{ peer.name }}-lan.conf">download lan config</a>
-                    <a href="{{ url_for("get_config", config_type = "all", peer_name = peer.name) }}" download="{{ peer.name }}-all.conf">download all config</a>
-                    <a href="{{ url_for("get_config", config_type = "zip", peer_name = peer.name) }}" download="{{ peer.name }}-bundle.zip">download config bundle</a>
-                </p>
+            <h2>Add peer</h2>
+            <hr>
+            <div class="add-peer-container">
+                <form action="add" method="post">
+                    <label>Peer name:</label>
 
-                <form action="delete" method="post">
-                    <button name="peer_name" value="{{ peer.name }}">Delete peer</button>
+                    <div class="input-box">
+                        <input name="peer_name" placeholder="eg. luuk" pattern="[a-z0-9-]"/>
+                        <button class="button">add peer</button>
+                    </div>
                 </form>
             </div>
-        {% endfor %}
+
+            <h2>Peer list</h2>
+            <hr>
+
+            <div class="peer-container">
+                {% for peer in peers %}
+                <div class="peer-box">
+                    <div class="peer-header">
+                        <i>{{ peer.name }}</i>
+
+                        <span>
+                            <a class="button download-bundle" href="{{ url_for("get_config", config_type = "zip", peer_name = peer.name) }}" download>download bundle</a>
+                            <form action="delete" method="post" style="display: inline;">
+                                <input name="peer_name" value="{{ peer.name }}" type="hidden"/>
+                                <button class="button delete">delete</button>
+                            </form>
+                        </span>
+                    </div>
+                    <hr>
+
+                    <div class="qr-container">
+                        <div class="qr-item">
+                            <span>LAN traffic only config</span>
+                            <img src="data:image/png;charset=utf-8;base64,{{ peer.lan_qr }}"/>
+                            <a class="button download" href="{{ url_for("get_config", config_type = "lan", peer_name = peer.name) }}" download>download .conf</a>
+                        </div>
+
+                        <div class="qr-item">
+                            <span>All traffic config</span>
+                            <img src="data:image/png;charset=utf-8;base64,{{ peer.all_qr }}"/>
+                            <a class="button download" href="{{ url_for("get_config", config_type = "all", peer_name = peer.name) }}" download>download .conf</a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
     </body>
 </html>

@@ -5,7 +5,7 @@ import base64
 import io
 import zipfile
 
-from flask import Flask, render_template, abort, redirect, url_for, request
+from flask import Flask, render_template, abort, redirect, url_for, request, make_response
 
 import qrcode
 from qrcode.image.pure import PyPNGImage
@@ -116,11 +116,11 @@ def generate_peer_keys():
     # TODO: add actual generation
 
     # wg genkey > privatekey
-    generated_private_key = "priv_key_placeholder"
+    generated_private_key = "hzlfNU0oGVi/tv6feFFBR4Ge7KY3D1+YaCtBZ4h0wrg="
     # wg pubkey < privatekey > publickey
-    generated_public_key = "pub_key_placeholder"
+    generated_public_key = "eGFvwMHBaUehUvt/ONvV0+c6VbM14aFOgD99i7jH6Vo="
     # wg genpsk
-    generated_pre_shared_key = "psk_placeholder"
+    generated_pre_shared_key = "kRHvN+9bH5+7rKTYy4nYvlNbmMIoOG5sD4Z5GECCvic="
 
     return (generated_private_key, generated_public_key, generated_pre_shared_key)
 
@@ -131,7 +131,7 @@ def get_endpoint_pubkey():
         endpoint_private_key = re.findall(r"^PrivateKey = ([A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=)", wireguard_config.read(), flags=re.MULTILINE)
 
     # do wg pubkey < server_private_key
-    endpoint_public_key = "endpoint_pub_key_placeholder"
+    endpoint_public_key = "+J1yNKyGATdcrai6bg3kBuTBaSHyT/99SS1ksytoWnM="
     return endpoint_public_key
 
 def get_list_of_peers():
@@ -253,16 +253,23 @@ def get_config(config_type, peer_name):
     if not peer_name:
         abort(400)
 
-    config_type = {"lan": 0, "all": 1, "zip": 2}.get(config_type, -1)
-    if config_type is -1:
+    if config_type not in ("lan", "all", "zip"):
         abort(404)
 
     peer_list = get_list_of_peers()
 
     if peer_name in peer_list:
-        if config_type is 2:
-            return generate_peer_config_bundle(peer_name)
+        if config_type == "zip":
+            response = make_response(generate_peer_config_bundle(peer_name))
+            response.headers["Content-Disposition"] = f"attachment; filename=\"{peer_name}-bundle.zip\""
+            response.headers["Content-Type"] = "application/zip"
+
+            return response 
         else:
-            return get_peer_configs(peer_name)[config_type]
+            response = make_response(get_peer_configs(peer_name)[{"lan": 0, "all": 1}.get(config_type)])
+            response.headers["Content-Disposition"] = f"attachment; filename=\"{peer_name}-{config_type}.conf\""
+            response.headers["Content-Type"] = "application/octet-stream"
+
+            return response
     else:
         abort(404)
