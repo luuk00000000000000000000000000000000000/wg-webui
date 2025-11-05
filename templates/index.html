@@ -18,6 +18,15 @@
                 The <i>"LAN-traffic-only"</i> config file only sends traffic for <i>192.168.2.0-192.168.2.255</i> addresses over the WireGuard tunnel, and the <i>"All traffic"</i> config file sends all traffic over the WireGuard tunnel.
             </p>
 
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="messages">
+                        {% for category, message in messages %}
+                        <li class="message {{ category }}">{{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
 
             <h2>Add peer</h2>
             <hr>

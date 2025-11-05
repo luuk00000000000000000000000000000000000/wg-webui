@@ -5,7 +5,7 @@ import base64
 import io
 import zipfile
 
-from flask import Flask, render_template, abort, redirect, url_for, request, make_response
+from flask import Flask, render_template, abort, redirect, url_for, request, make_response, flash
 
 import qrcode
 from qrcode.image.pure import PyPNGImage
@@ -52,6 +52,7 @@ CONFIG = {
 }
 
 app = Flask(__name__)
+app.secret_key = os.urandom(24)
 
 def save_peer_data(peer_name, private_key, ipv4_segment, public_key, pre_shared_key):
     peer_data = {
@@ -63,44 +64,62 @@ def save_peer_data(peer_name, private_key, ipv4_segment, public_key, pre_shared_
 
     peer_data_file_path = os.path.join(CONFIG["PEER_DATA_DIR"], peer_name + "-data.json")
 
-    with open(peer_data_file_path, "x") as peer_data_file:
-        peer_data_file.write(json.dumps(peer_data))
-
-    os.chmod(peer_data_file_path, 0o600)
+    try:
+        with open(peer_data_file_path, "x") as peer_data_file:
+            peer_data_file.write(json.dumps(peer_data))
+    except Exception as e:
+        raise Exception(f"failed to save peer data with error [{e}]")
+    else:
+        os.chmod(peer_data_file_path, 0o600)
 
 def get_peer_data(peer_name):
     peer_data_file_path = os.path.join(CONFIG["PEER_DATA_DIR"], peer_name + "-data.json")
 
-    with open(peer_data_file_path, "r") as peer_data_file:
-        peer_data = json.loads(peer_data_file.read())
-
-    return peer_data
+    try:
+        with open(peer_data_file_path, "r") as peer_data_file:
+            peer_data = json.loads(peer_data_file.read())
+    except Exception as e:
+        raise Exception(f"failed to get peer data with error [{e}]")
+    else:
+        return peer_data
 
 def add_peer_to_wg_config(name, public_key, pre_shared_key, ipv4_segment):
-    with open(CONFIG["WG_CONFIG_FILE"], "a") as wireguard_config:
-        wireguard_config.write(PEER_WG_CONFIG_TEMPLATE.format(name = name,
-                                                              public_key = public_key,
-                                                              pre_shared_key = pre_shared_key,
-                                                              ipv4_segment = ipv4_segment))
+    try:
+        with open(CONFIG["WG_CONFIG_FILE"], "a") as wireguard_config:
+            wireguard_config.write(PEER_WG_CONFIG_TEMPLATE.format(name = name,
+                                                                public_key = public_key,
+                                                                pre_shared_key = pre_shared_key,
+                                                                ipv4_segment = ipv4_segment))
+    except Exception as e:
+        raise Exception(f"failed add peer to wireguard config with error {e}")
         
 def remove_peer_from_wg_config(name, public_key, pre_shared_key, ipv4_segment):
-    with open(CONFIG["WG_CONFIG_FILE"], "r+") as wireguard_config:
-        config_contents = wireguard_config.read()
-        wireguard_config.seek(0)
+    try:
+        with open(CONFIG["WG_CONFIG_FILE"], "r+") as wireguard_config:
+            config_contents = wireguard_config.read()
+            wireguard_config.seek(0)
 
-        peer_config_section = PEER_WG_CONFIG_TEMPLATE.format(name = name,
-                                                             public_key = public_key,
-                                                             pre_shared_key = pre_shared_key,
-                                                             ipv4_segment = ipv4_segment)
-        
-        rewritten_config_contents = config_contents.replace(peer_config_section, "")
+            peer_config_section = PEER_WG_CONFIG_TEMPLATE.format(name = name,
+                                                                public_key = public_key,
+                                                                pre_shared_key = pre_shared_key,
+                                                                ipv4_segment = ipv4_segment)
+            
+            rewritten_config_contents = config_contents.replace(peer_config_section, "")
 
-        wireguard_config.write(rewritten_config_contents)
-        wireguard_config.truncate()
+            wireguard_config.write(rewritten_config_contents)
+            wireguard_config.truncate()
+    except Exception as e:
+        flash(f"failed to remove peer from wireguard config with error {e}", "error")
+        return False
+    else:
+        return True
         
 def get_next_available_ip():
-    with open(CONFIG["WG_CONFIG_FILE"], "r") as wireguard_config:
-        ip_segments = re.findall(r"^AllowedIPs = (?:[0-9]{1,3}\.){3}([0-9]{1,3})", wireguard_config.read(), flags=re.MULTILINE)
+    try:
+        with open(CONFIG["WG_CONFIG_FILE"], "r") as wireguard_config:
+            ip_segments = re.findall(r"^AllowedIPs = (?:[0-9]{1,3}\.){3}([0-9]{1,3})", wireguard_config.read(), flags=re.MULTILINE)
+    except Exception as e:
+        raise Exception(f"failed to open wireguard config file with error {e}")
 
     if ip_segments:
         next_ip = int(max(ip_segments)) + 1
@@ -108,34 +127,44 @@ def get_next_available_ip():
         next_ip = 2
 
     if next_ip > 254:
-        raise Exception("No IP addresses available")
+        raise Exception("no more ip's available in wireguard subnet. wow!")
     else:
         return next_ip
 
 def generate_peer_keys():
     # TODO: add actual generation
 
-    # wg genkey > privatekey
-    generated_private_key = "hzlfNU0oGVi/tv6feFFBR4Ge7KY3D1+YaCtBZ4h0wrg="
-    # wg pubkey < privatekey > publickey
-    generated_public_key = "eGFvwMHBaUehUvt/ONvV0+c6VbM14aFOgD99i7jH6Vo="
-    # wg genpsk
-    generated_pre_shared_key = "kRHvN+9bH5+7rKTYy4nYvlNbmMIoOG5sD4Z5GECCvic="
-
-    return (generated_private_key, generated_public_key, generated_pre_shared_key)
+    try:
+        # wg genkey > privatekey
+        generated_private_key = "hzlfNU0oGVi/tv6feFFBR4Ge7KY3D1+YaCtBZ4h0wrg="
+        # wg pubkey < privatekey > publickey
+        generated_public_key = "eGFvwMHBaUehUvt/ONvV0+c6VbM14aFOgD99i7jH6Vo="
+        # wg genpsk
+        generated_pre_shared_key = "kRHvN+9bH5+7rKTYy4nYvlNbmMIoOG5sD4Z5GECCvic="
+    except Exception as e:
+        raise Exception(f"failed to generate peer keys with error {e}")
+    else:
+        return (generated_private_key, generated_public_key, generated_pre_shared_key)
 
 def get_endpoint_pubkey():
     # TODO: add actual key retrieval
 
-    with open(CONFIG["WG_CONFIG_FILE"], "r") as wireguard_config:
-        endpoint_private_key = re.findall(r"^PrivateKey = ([A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=)", wireguard_config.read(), flags=re.MULTILINE)
+    try:
+        with open(CONFIG["WG_CONFIG_FILE"], "r") as wireguard_config:
+            endpoint_private_key = re.findall(r"^PrivateKey = ([A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=)", wireguard_config.read(), flags=re.MULTILINE)
 
-    # do wg pubkey < server_private_key
-    endpoint_public_key = "+J1yNKyGATdcrai6bg3kBuTBaSHyT/99SS1ksytoWnM="
-    return endpoint_public_key
+        # do wg pubkey < server_private_key
+        endpoint_public_key = "+J1yNKyGATdcrai6bg3kBuTBaSHyT/99SS1ksytoWnM="
+    except Exception as e:
+        raise Exception(f"failed to get endpoint public key with error {e}")
+    else:
+        return endpoint_public_key
 
 def get_list_of_peers():
-    data_files = os.listdir(CONFIG["PEER_DATA_DIR"])
+    try:
+        data_files = os.listdir(CONFIG["PEER_DATA_DIR"])
+    except Exception as e:
+        raise Exception(f"failed to get list of peers with error {e}")
 
     peers = []
 
@@ -193,7 +222,7 @@ def generate_peer_config_bundle(peer_name):
 
 def sanitize_peer_name(peer_name):
     if not peer_name:
-        return False
+        return None
     
     return re.sub(r"[^a-z0-9-]", "", peer_name)
 
@@ -201,51 +230,62 @@ def sanitize_peer_name(peer_name):
 def index():
     peer_qr_list = []
 
-    for peer in get_list_of_peers():
-        peer_lan_qr, peer_all_qr = generate_peer_qr_codes(peer)
-        peer_qr_list.append({ "name": peer, "lan_qr": peer_lan_qr, "all_qr": peer_all_qr })
+    try:
+        for peer in get_list_of_peers():
+            peer_lan_qr, peer_all_qr = generate_peer_qr_codes(peer)
+            peer_qr_list.append({ "name": peer, "lan_qr": peer_lan_qr, "all_qr": peer_all_qr })
+    except Exception as e:
+        flash(f"{e}", "error")
 
     return render_template("index.html", peers = peer_qr_list)
 
 @app.route("/add", methods = ["POST"])
 def add_peer():
     peer_name = sanitize_peer_name(request.form.get("peer_name"))
-
     if not peer_name:
-        abort(400)
+        flash("peer name can't be empty!", "warning")
+        return redirect(url_for("index"))
 
-    peer_list = get_list_of_peers()
+    try:
+        peer_list = get_list_of_peers()
 
-    if peer_name not in peer_list:
-        ipv4_segment = get_next_available_ip()
-        private_key, public_key, pre_shared_key = generate_peer_keys()
+        if peer_name not in peer_list:
+            ipv4_segment = get_next_available_ip()
+            private_key, public_key, pre_shared_key = generate_peer_keys()
 
-        save_peer_data(peer_name, private_key, ipv4_segment, public_key, pre_shared_key)
-        add_peer_to_wg_config(peer_name, public_key, pre_shared_key, ipv4_segment)
+            save_peer_data(peer_name, private_key, ipv4_segment, public_key, pre_shared_key)
+            add_peer_to_wg_config(peer_name, public_key, pre_shared_key, ipv4_segment)
+        else:
+            flash(f"peer name {peer_name} is already in peer list", "warning")
 
         return redirect(url_for("index"))
-    else:
-        abort(404)
+    except Exception as e:
+        flash(f"{e}", "error")
+        return redirect(url_for("index"))
+
 
 @app.route("/delete", methods = ["POST"])
 def delete_peer():
     peer_name = sanitize_peer_name(request.form.get("peer_name"))
-
     if not peer_name:
         abort(400)
 
-    peer_list = get_list_of_peers()
+    try:
+        peer_list = get_list_of_peers()
 
-    if peer_name in peer_list:
-        peer_data = get_peer_data(peer_name)
+        if peer_name in peer_list:
+            peer_data = get_peer_data(peer_name)
 
-        remove_peer_from_wg_config(peer_name, peer_data["public_key"], peer_data["pre_shared_key"], peer_data["ipv4_segment"])
+            remove_peer_from_wg_config(peer_name, peer_data["public_key"], peer_data["pre_shared_key"], peer_data["ipv4_segment"])
 
-        os.remove(os.path.join(CONFIG["PEER_DATA_DIR"], f"{peer_name}-data.json"))
+            os.remove(os.path.join(CONFIG["PEER_DATA_DIR"], f"{peer_name}-data.json"))
 
+            return redirect(url_for("index"))
+        else:
+            abort(404)
+    except Exception as e:
+        flash(f"{e}", "error")
         return redirect(url_for("index"))
-    else:
-        abort(400)
 
 @app.route("/peer-config/<peer_name>/<config_type>", methods = ["GET"])
 def get_config(config_type, peer_name):
@@ -256,20 +296,24 @@ def get_config(config_type, peer_name):
     if config_type not in ("lan", "all", "zip"):
         abort(404)
 
-    peer_list = get_list_of_peers()
+    try:
+        peer_list = get_list_of_peers()
 
-    if peer_name in peer_list:
-        if config_type == "zip":
-            response = make_response(generate_peer_config_bundle(peer_name))
-            response.headers["Content-Disposition"] = f"attachment; filename=\"{peer_name}-bundle.zip\""
-            response.headers["Content-Type"] = "application/zip"
+        if peer_name in peer_list:
+            if config_type == "zip":
+                response = make_response(generate_peer_config_bundle(peer_name))
+                response.headers["Content-Disposition"] = f"attachment; filename=\"{peer_name}-bundle.zip\""
+                response.headers["Content-Type"] = "application/zip"
 
-            return response 
+                return response 
+            else:
+                response = make_response(get_peer_configs(peer_name)[{"lan": 0, "all": 1}.get(config_type)])
+                response.headers["Content-Disposition"] = f"attachment; filename=\"{peer_name}-{config_type}.conf\""
+                response.headers["Content-Type"] = "application/octet-stream"
+
+                return response
         else:
-            response = make_response(get_peer_configs(peer_name)[{"lan": 0, "all": 1}.get(config_type)])
-            response.headers["Content-Disposition"] = f"attachment; filename=\"{peer_name}-{config_type}.conf\""
-            response.headers["Content-Type"] = "application/octet-stream"
-
-            return response
-    else:
-        abort(404)
+            abort(404)
+    except Exception as e:
+        flash(f"{e}", "error")
+        return redirect(url_for("index"))
