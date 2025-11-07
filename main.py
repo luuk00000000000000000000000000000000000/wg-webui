@@ -109,10 +109,7 @@ def remove_peer_from_wg_config(name, public_key, pre_shared_key, ipv4_segment):
             wireguard_config.write(rewritten_config_contents)
             wireguard_config.truncate()
     except Exception as e:
-        flash(f"failed to remove peer from wireguard config with error {e}", "error")
-        return False
-    else:
-        return True
+        raise Exception(f"failed to remove peer from wireguard config with error {e}")
         
 def get_next_available_ip():
     try:
@@ -282,7 +279,8 @@ def delete_peer():
 
             return redirect(url_for("index"))
         else:
-            abort(404)
+            flash(f"peer name {peer_name} not found in peer list", "warning")
+            return redirect(url_for("index"))
     except Exception as e:
         flash(f"{e}", "error")
         return redirect(url_for("index"))
@@ -315,5 +313,4 @@ def get_config(config_type, peer_name):
         else:
             abort(404)
     except Exception as e:
-        flash(f"{e}", "error")
-        return redirect(url_for("index"))
+        abort(500)

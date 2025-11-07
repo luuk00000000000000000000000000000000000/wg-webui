@@ -73,9 +73,7 @@ button {
     background-color: #ffffff;
     box-shadow: 3px 3px #cfcfd1;
 
-    border-style: solid;
-    border-color: #000000;
-    border-width: 1px;
+    border: 1px solid #000000;
 }
 
 .main-container hr {
@@ -88,10 +86,29 @@ button {
 
 .main-container .description {
     margin-top: 2rem;
+    margin-bottom: 2rem;
 }
 
-.main-container h2 {
-    padding-top: 2rem;
+.main-container .message {
+    margin-top: 2rem;
+    margin-bottom: 2rem;
+
+    padding: 0.5rem;
+
+    border: 1px solid #000000;
+    box-shadow: 3px 3px #cfcfd1;
+
+    background-color: #237c00;
+    color: #ffffff;
+}
+
+.main-container .message.warning {
+    background-color: #fed55f;
+    color: #000000;
+}
+
+.main-container .message.error {
+    background-color: #af1717;
 }
 
 .add-peer-container label {
@@ -116,9 +133,8 @@ button {
 .peer-box {
     display: grid;
     grid-template-rows: auto auto;
-    border-style: solid;
-    border-color: #000000;
-    border-width: 1px;
+
+    border: 1px solid #000000;
 
     padding: 0.5rem;
 

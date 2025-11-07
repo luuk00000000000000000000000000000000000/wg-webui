@@ -19,13 +19,13 @@
             </p>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <ul class="messages">
-                        {% for category, message in messages %}
-                        <li class="message {{ category }}">{{ message }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <p class="message {{ category }}">
+                {{ message }}
+            </p>
+            {% endfor %}
+            {% endif %}
             {% endwith %}
 
             <h2>Add peer</h2>
@@ -41,7 +41,7 @@
                 </form>
             </div>
 
-            <h2>Peer list</h2>
+            <h2 style="padding-top: 2rem">Peer list</h2>
             <hr>
 
             <div class="peer-container">
