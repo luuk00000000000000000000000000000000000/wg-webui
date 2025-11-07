@@ -252,6 +252,8 @@ def add_peer():
 
             save_peer_data(peer_name, private_key, ipv4_segment, public_key, pre_shared_key)
             add_peer_to_wg_config(peer_name, public_key, pre_shared_key, ipv4_segment)
+
+            flash(f"{peer_name} was added successfully!", "info")
         else:
             flash(f"peer name {peer_name} is already in peer list", "warning")
 
@@ -277,10 +279,11 @@ def delete_peer():
 
             os.remove(os.path.join(CONFIG["PEER_DATA_DIR"], f"{peer_name}-data.json"))
 
-            return redirect(url_for("index"))
+            flash(f"{peer_name} was deleted successfully!", "info")
         else:
             flash(f"peer name {peer_name} not found in peer list", "warning")
-            return redirect(url_for("index"))
+        
+        return redirect(url_for("index"))
     except Exception as e:
         flash(f"{e}", "error")
         return redirect(url_for("index"))
