@@ -167,12 +167,19 @@ def get_next_available_ip():
     
     ip_segments = re.findall(r"^(?:[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=)\t(?:[0-9]{1,3}\.){3}([0-9]{1,3})", wg_show_output.stdout, flags = re.MULTILINE)
 
+    next_ip = None
+
     if ip_segments:
-        next_ip = int(max(ip_segments)) + 1
+        ip_segments_set = set(map(int, ip_segments))
+
+        for segment in range(2, 255):
+            if segment not in ip_segments_set:
+                next_ip = segment
+                break
     else:
         next_ip = 2
 
-    if next_ip > 254:
+    if not next_ip:
         raise Exception("no more ip's available in wireguard subnet. wow!")
     else:
         return next_ip
