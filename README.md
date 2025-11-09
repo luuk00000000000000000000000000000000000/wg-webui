@@ -13,6 +13,13 @@ Simple webinterface for WireGuard to manage peers
 2. Create `peer-data` folder
 3. Run using `uv run -- flask run`
 
+This app needs passwordless `sudo` access for the following commands: `wg`, `wg-quick`, `ip`.<br>
+Example file `/etc/sudoers.d/wg-access` (gives user `user` access to the neccesary commands via `sudo`):
+
+```
+user ALL=(root) NOPASSWD: /usr/bin/wg, /usr/bin/wg-quick, /usr/bin/ip
+```
+
 # Disclaimer
 I am not a webdev, I am actually not a software developer at all so this might be the most unsecured piece of software on earth.  
 Use responsibly, don't be an idiot and make the webinterface available to the whole internet or something.  
