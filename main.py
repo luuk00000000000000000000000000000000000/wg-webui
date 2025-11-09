@@ -15,10 +15,16 @@ from qrcode.image.pure import PyPNGImage
 ### Configuration templates
 ###
 
+CONFIG = {
+    "PEER_DATA_DIR": "peer-data",
+    "WG_INTERFACE_NAME": "wg0",
+    "WG_PEER_IPV4_BLOCK": "192.168.42."
+}
+
 PEER_ALL_TRAFFIC_TEMPLATE = """
 [Interface]
 PrivateKey = {private_key}
-Address = 192.168.42.{ipv4_segment:d}/32
+Address = {ipv4_block}{ipv4_segment:d}/32
 
 [Peer]
 PublicKey = {public_key}
@@ -30,7 +36,7 @@ Endpoint = wireguard.example.com:51820
 PEER_LAN_TRAFFIC_TEMPLATE = """
 [Interface]
 PrivateKey = {private_key}
-Address = 192.168.42.{ipv4_segment:d}/32
+Address = {ipv4_block}{ipv4_segment:d}/32
 
 [Peer]
 PublicKey = {public_key}
@@ -38,11 +44,6 @@ PresharedKey = {pre_shared_key}
 AllowedIPs = 192.168.2.0/24
 Endpoint = wireguard.example.com:51820
 """
-
-CONFIG = {
-    "PEER_DATA_DIR": "peer-data",
-    "WG_INTERFACE_NAME": "wg0"
-}
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -100,7 +101,7 @@ def add_peer_to_wg_config(public_key, pre_shared_key, ipv4_segment):
         "preshared-key",
         "/dev/stdin",
         "allowed-ips",
-        f"192.168.42.{ipv4_segment}/32"
+        f"{CONFIG["WG_PEER_IPV4_BLOCK"]}{ipv4_segment}/32"
     ]
 
     ip_command = [
@@ -109,7 +110,7 @@ def add_peer_to_wg_config(public_key, pre_shared_key, ipv4_segment):
         "-4",
         "route",
         "add",
-        f"192.168.42.{ipv4_segment}/32",
+        f"{CONFIG["WG_PEER_IPV4_BLOCK"]}{ipv4_segment}/32",
         "dev",
         CONFIG["WG_INTERFACE_NAME"]
     ]
@@ -139,7 +140,7 @@ def remove_peer_from_wg_config(public_key, ipv4_segment):
         "-4",
         "route",
         "delete",
-        f"192.168.42.{ipv4_segment}/32",
+        f"{CONFIG["WG_PEER_IPV4_BLOCK"]}{ipv4_segment}/32",
         "dev",
         CONFIG["WG_INTERFACE_NAME"]
     ]
@@ -248,11 +249,13 @@ def get_peer_configs(peer_name):
     peer_data = get_peer_data(peer_name)
 
     peer_config_lan = PEER_LAN_TRAFFIC_TEMPLATE.format(private_key = peer_data["private_key"],
+                                                       ipv4_block = CONFIG["WG_PEER_IPV4_BLOCK"],
                                                        ipv4_segment = peer_data["ipv4_segment"],
                                                        public_key = get_endpoint_pubkey(),
                                                        pre_shared_key = peer_data["pre_shared_key"])
     
     peer_config_all = PEER_ALL_TRAFFIC_TEMPLATE.format(private_key = peer_data["private_key"],
+                                                       ipv4_block = CONFIG["WG_PEER_IPV4_BLOCK"],
                                                        ipv4_segment = peer_data["ipv4_segment"],
                                                        public_key = get_endpoint_pubkey(),
                                                        pre_shared_key = peer_data["pre_shared_key"])
