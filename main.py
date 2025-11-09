@@ -146,7 +146,7 @@ def get_next_available_ip():
     ]
 
     try:
-        wg_show_output = subprocess.run(wg_command, capture_output = True, check = True)
+        wg_show_output = subprocess.run(wg_command, text = True, capture_output = True, check = True)
     except Exception as e:
         raise Exception(f"command failed to run! error {e}")
     
@@ -182,13 +182,13 @@ def generate_peer_keys():
     ]
 
     try:
-        priv_key_command_output = subprocess.run(priv_key_command, capture_output = True, check = True)
+        priv_key_command_output = subprocess.run(priv_key_command, text = True, capture_output = True, check = True)
         generated_private_key = re.search(r"^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=", priv_key_command_output.stdout).group()
 
         pub_key_command_output = subprocess.run(pub_key_command, input = generated_private_key, text = True, capture_output = True, check = True)
         generated_public_key = re.search(r"^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=", pub_key_command_output.stdout).group()
 
-        psk_command_output = subprocess.run(psk_command, capture_output = True, check = True)
+        psk_command_output = subprocess.run(psk_command, text = True, capture_output = True, check = True)
         generated_pre_shared_key = re.search(r"^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=", psk_command_output.stdout).group()
     except Exception as e:
         raise Exception(f"failed to generate peer keys with error {e}")
@@ -205,7 +205,7 @@ def get_endpoint_pubkey():
     ]
 
     try:
-        endpoint_pubkey_command_output = subprocess.run(endpoint_pubkey_command, capture_output = True, check = True)
+        endpoint_pubkey_command_output = subprocess.run(endpoint_pubkey_command, text = True, capture_output = True, check = True)
         endpoint_public_key = re.search(r"^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=", endpoint_pubkey_command_output.stdout).group()
     except Exception as e:
         raise Exception(f"failed to get endpoint public key with error {e}")
@@ -330,9 +330,9 @@ def delete_peer():
         if peer_name in peer_list:
             peer_data = get_peer_data(peer_name)
 
-            remove_peer_from_wg_config(peer_data["public_key"], peer_data["ipv4_segment"])
-
             os.remove(os.path.join(CONFIG["PEER_DATA_DIR"], f"{peer_name}-data.json"))
+
+            remove_peer_from_wg_config(peer_data["public_key"], peer_data["ipv4_segment"])
 
             flash(f"{peer_name} was deleted successfully!", "info")
         else:
