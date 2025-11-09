@@ -87,7 +87,7 @@ def save_wg_config():
     try:
         subprocess.run(wg_quick_command, text = True, check = True)
     except Exception as e:
-        raise Exception(f"failed to save wireguard config with error {e}")
+        raise Exception(f"failed to save wireguard config with error [{e}]")
 
 def add_peer_to_wg_config(public_key, pre_shared_key, ipv4_segment):  
     wg_command = [
@@ -118,7 +118,7 @@ def add_peer_to_wg_config(public_key, pre_shared_key, ipv4_segment):
         subprocess.run(wg_command, input = pre_shared_key, text = True, check = True)
         subprocess.run(ip_command, check = True)
     except Exception as e:
-        raise Exception(f"command failed to run! error {e}")
+        raise Exception(f"command failed to run with error [{e}]")
     
     save_wg_config()
         
@@ -148,7 +148,7 @@ def remove_peer_from_wg_config(public_key, ipv4_segment):
         subprocess.run(wg_command, check = True)
         subprocess.run(ip_command, check = True)
     except Exception as e:
-        raise Exception(f"command failed to run! error {e}")
+        raise Exception(f"command failed to run with error [{e}]")
     
     save_wg_config()
         
@@ -164,7 +164,7 @@ def get_next_available_ip():
     try:
         wg_show_output = subprocess.run(wg_command, text = True, capture_output = True, check = True)
     except Exception as e:
-        raise Exception(f"command failed to run! error {e}")
+        raise Exception(f"command failed to run with error [{e}]")
     
     ip_segments = re.findall(r"^(?:[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=)\t(?:[0-9]{1,3}\.){3}([0-9]{1,3})", wg_show_output.stdout, flags = re.MULTILINE)
 
@@ -207,7 +207,7 @@ def generate_peer_keys():
         psk_command_output = subprocess.run(psk_command, text = True, capture_output = True, check = True)
         generated_pre_shared_key = re.search(r"^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=", psk_command_output.stdout).group()
     except Exception as e:
-        raise Exception(f"failed to generate peer keys with error {e}")
+        raise Exception(f"failed to generate peer keys with error [{e}]")
     else:
         return (generated_private_key, generated_public_key, generated_pre_shared_key)
 
@@ -224,7 +224,7 @@ def get_endpoint_pubkey():
         endpoint_pubkey_command_output = subprocess.run(endpoint_pubkey_command, text = True, capture_output = True, check = True)
         endpoint_public_key = re.search(r"^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=", endpoint_pubkey_command_output.stdout).group()
     except Exception as e:
-        raise Exception(f"failed to get endpoint public key with error {e}")
+        raise Exception(f"failed to get endpoint public key with error [{e}]")
     else:
         return endpoint_public_key
 
@@ -232,7 +232,7 @@ def get_list_of_peers():
     try:
         data_files = os.listdir(CONFIG["PEER_DATA_DIR"])
     except Exception as e:
-        raise Exception(f"failed to get list of peers with error {e}")
+        raise Exception(f"failed to get list of peers with error [{e}]")
 
     peers = []
 
@@ -305,7 +305,7 @@ def check_wireguard_status():
     try:
         wg_command_output = subprocess.run(wg_command, text = True, capture_output = True)
     except Exception as e:
-        raise Exception(f"command failed to run! error {e}")
+        raise Exception(f"command failed to run with error [{e}]")
     
     if wg_command_output.returncode is 1:
         if "No such device" in wg_command_output.stderr:
