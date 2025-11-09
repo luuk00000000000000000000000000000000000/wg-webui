@@ -238,7 +238,7 @@ def get_list_of_peers():
     peers = []
 
     for file in data_files:
-        regex_search = re.search(r"^([a-z0-9-]*)(-data\.json)$", file)
+        regex_search = re.search(r"^([a-zA-Z0-9-]*)(-data\.json)$", file)
 
         if regex_search != None:
             peers.append(regex_search.group(1))
@@ -295,7 +295,7 @@ def sanitize_peer_name(peer_name):
     if not peer_name:
         return None
     
-    return re.sub(r"[^a-z0-9-]", "", peer_name)
+    return re.sub(r"[^a-zA-Z0-9-]", "", peer_name)
 
 def check_wireguard_status():
     wg_command = [
