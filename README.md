@@ -10,6 +10,8 @@ Simple webinterface for WireGuard to manage peers
 
 # Installing / running
 1. Install dependencies with using `uv sync`
+2. Create `peer-data` folder
+3. Run using `uv run -- flask run`
 
 # Disclaimer
 I am not a webdev, I am actually not a software developer at all so this might be the most unsecured piece of software on earth.  
