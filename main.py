@@ -310,7 +310,7 @@ def check_wireguard_status():
     except Exception as e:
         raise Exception(f"command failed to run with error [{e}]")
     
-    if wg_command_output.returncode is 1:
+    if wg_command_output.returncode == 1:
         if "No such device" in wg_command_output.stderr:
             return False
         else:
