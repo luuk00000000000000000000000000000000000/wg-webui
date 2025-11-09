@@ -294,14 +294,39 @@ def sanitize_peer_name(peer_name):
     
     return re.sub(r"[^a-z0-9-]", "", peer_name)
 
+def check_wireguard_status():
+    wg_command = [
+        "sudo",
+        "wg",
+        "show",
+        CONFIG["WG_INTERFACE_NAME"]
+    ]
+
+    try:
+        wg_command_output = subprocess.run(wg_command, text = True, capture_output = True)
+    except Exception as e:
+        raise Exception(f"command failed to run! error {e}")
+    
+    if wg_command_output.returncode is 1:
+        if "No such device" in wg_command_output.stderr:
+            return False
+        else:
+            raise Exception(f"[wg show {CONFIG["WG_INTERFACE_NAME"]}] failed to run! stderr: {wg_command_output.stderr}")
+    else:
+        return True
+
+
 @app.route("/", methods = ["GET"])
 def index():
     peer_qr_list = []
 
     try:
-        for peer in get_list_of_peers():
-            peer_lan_qr, peer_all_qr = generate_peer_qr_codes(peer)
-            peer_qr_list.append({ "name": peer, "lan_qr": peer_lan_qr, "all_qr": peer_all_qr })
+        if not check_wireguard_status():
+            flash(f"WireGuard interface [{CONFIG["WG_INTERFACE_NAME"]}] is not up!", "error")
+        else:
+            for peer in get_list_of_peers():
+                peer_lan_qr, peer_all_qr = generate_peer_qr_codes(peer)
+                peer_qr_list.append({ "name": peer, "lan_qr": peer_lan_qr, "all_qr": peer_all_qr })
     except Exception as e:
         flash(f"{e}", "error")
 
@@ -332,7 +357,6 @@ def add_peer():
     except Exception as e:
         flash(f"{e}", "error")
         return redirect(url_for("index"))
-
 
 @app.route("/delete", methods = ["POST"])
 def delete_peer():
