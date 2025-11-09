@@ -4,6 +4,7 @@ import re
 import base64
 import io
 import zipfile
+import subprocess
 
 from flask import Flask, render_template, abort, redirect, url_for, request, make_response, flash
 
@@ -38,17 +39,10 @@ AllowedIPs = 192.168.2.0/24
 Endpoint = wireguard.example.com:51820
 """
 
-PEER_WG_CONFIG_TEMPLATE = """
-# Name: {name}
-[Peer]
-PublicKey = {public_key}
-PresharedKey = {pre_shared_key}
-AllowedIPs = 192.168.42.{ipv4_segment:d}/32
-"""
-
 CONFIG = {
     "PEER_DATA_DIR": "peer-data",
-    "WG_CONFIG_FILE": "sample.conf"
+    "WG_CONFIG_FILE": "sample.conf",
+    "WG_INTERFACE_NAME": "wg0"
 }
 
 app = Flask(__name__)
@@ -83,40 +77,80 @@ def get_peer_data(peer_name):
     else:
         return peer_data
 
-def add_peer_to_wg_config(name, public_key, pre_shared_key, ipv4_segment):
+def add_peer_to_wg_config(public_key, pre_shared_key, ipv4_segment):  
+    wg_command = [
+        "sudo",
+        "wg",
+        "set",
+        CONFIG["WG_INTERFACE_NAME"],
+        "peer",
+        public_key,
+        "preshared-key",
+        "/dev/stdin",
+        "allowed-ips",
+        f"192.168.42.{ipv4_segment}/32"
+    ]
+
+    ip_command = [
+        "sudo",
+        "ip",
+        "-4",
+        "route",
+        "add",
+        f"192.168.42.{ipv4_segment}/32",
+        "dev",
+        CONFIG["WG_INTERFACE_NAME"]
+    ]
+    
     try:
-        with open(CONFIG["WG_CONFIG_FILE"], "a") as wireguard_config:
-            wireguard_config.write(PEER_WG_CONFIG_TEMPLATE.format(name = name,
-                                                                public_key = public_key,
-                                                                pre_shared_key = pre_shared_key,
-                                                                ipv4_segment = ipv4_segment))
+        subprocess.run(wg_command, input = pre_shared_key, text = True, check = True)
+        subprocess.run(ip_command, check = True)
     except Exception as e:
-        raise Exception(f"failed add peer to wireguard config with error {e}")
+        raise Exception(f"command failed to run! error {e}")
         
-def remove_peer_from_wg_config(name, public_key, pre_shared_key, ipv4_segment):
+def remove_peer_from_wg_config(public_key, ipv4_segment):   
+    wg_command = [
+        "sudo",
+        "wg",
+        "set",
+        CONFIG["WG_INTERFACE_NAME"],
+        "peer",
+        public_key,
+        "remove"
+    ]
+
+    ip_command = [
+        "sudo",
+        "ip",
+        "-4",
+        "route",
+        "delete",
+        f"192.168.42.{ipv4_segment}/32",
+        "dev",
+        CONFIG["WG_INTERFACE_NAME"]
+    ]
+   
     try:
-        with open(CONFIG["WG_CONFIG_FILE"], "r+") as wireguard_config:
-            config_contents = wireguard_config.read()
-            wireguard_config.seek(0)
-
-            peer_config_section = PEER_WG_CONFIG_TEMPLATE.format(name = name,
-                                                                public_key = public_key,
-                                                                pre_shared_key = pre_shared_key,
-                                                                ipv4_segment = ipv4_segment)
-            
-            rewritten_config_contents = config_contents.replace(peer_config_section, "")
-
-            wireguard_config.write(rewritten_config_contents)
-            wireguard_config.truncate()
+        subprocess.run(wg_command, check = True)
+        subprocess.run(ip_command, check = True)
     except Exception as e:
-        raise Exception(f"failed to remove peer from wireguard config with error {e}")
+        raise Exception(f"command failed to run! error {e}")
         
 def get_next_available_ip():
+    wg_command = [
+        "sudo",
+        "wg",
+        "show",
+        CONFIG["WG_INTERFACE_NAME"],
+        "allowed-ips"
+    ]
+
     try:
-        with open(CONFIG["WG_CONFIG_FILE"], "r") as wireguard_config:
-            ip_segments = re.findall(r"^AllowedIPs = (?:[0-9]{1,3}\.){3}([0-9]{1,3})", wireguard_config.read(), flags=re.MULTILINE)
+        wg_show_output = subprocess.run(wg_command, capture_output = True, check = True)
     except Exception as e:
-        raise Exception(f"failed to open wireguard config file with error {e}")
+        raise Exception(f"command failed to run! error {e}")
+    
+    ip_segments = re.findall(r"^(?:[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=)\t(?:[0-9]{1,3}\.){3}([0-9]{1,3})", wg_show_output.stdout, flags = re.MULTILINE)
 
     if ip_segments:
         next_ip = int(max(ip_segments)) + 1
@@ -129,29 +163,51 @@ def get_next_available_ip():
         return next_ip
 
 def generate_peer_keys():
-    # TODO: add actual generation
+    priv_key_command = [
+        "sudo",
+        "wg",
+        "genkey"
+    ]
+    
+    pub_key_command = [
+        "sudo",
+        "wg",
+        "pubkey",
+        "/dev/stdin"
+    ]
+
+    psk_command = [
+        "sudo",
+        "wg",
+        "genpsk"
+    ]
 
     try:
-        # wg genkey > privatekey
-        generated_private_key = "hzlfNU0oGVi/tv6feFFBR4Ge7KY3D1+YaCtBZ4h0wrg="
-        # wg pubkey < privatekey > publickey
-        generated_public_key = "eGFvwMHBaUehUvt/ONvV0+c6VbM14aFOgD99i7jH6Vo="
-        # wg genpsk
-        generated_pre_shared_key = "kRHvN+9bH5+7rKTYy4nYvlNbmMIoOG5sD4Z5GECCvic="
+        priv_key_command_output = subprocess.run(priv_key_command, capture_output = True, check = True)
+        generated_private_key = re.search(r"^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=", priv_key_command_output.stdout).group()
+
+        pub_key_command_output = subprocess.run(pub_key_command, input = generated_private_key, text = True, capture_output = True, check = True)
+        generated_public_key = re.search(r"^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=", pub_key_command_output.stdout).group()
+
+        psk_command_output = subprocess.run(psk_command, capture_output = True, check = True)
+        generated_pre_shared_key = re.search(r"^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=", psk_command_output.stdout).group()
     except Exception as e:
         raise Exception(f"failed to generate peer keys with error {e}")
     else:
         return (generated_private_key, generated_public_key, generated_pre_shared_key)
 
 def get_endpoint_pubkey():
-    # TODO: add actual key retrieval
+    endpoint_pubkey_command = [
+        "sudo",
+        "wg",
+        "show",
+        CONFIG["WG_INTERFACE_NAME"],
+        "public-key"
+    ]
 
     try:
-        with open(CONFIG["WG_CONFIG_FILE"], "r") as wireguard_config:
-            endpoint_private_key = re.findall(r"^PrivateKey = ([A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=)", wireguard_config.read(), flags=re.MULTILINE)
-
-        # do wg pubkey < server_private_key
-        endpoint_public_key = "+J1yNKyGATdcrai6bg3kBuTBaSHyT/99SS1ksytoWnM="
+        endpoint_pubkey_command_output = subprocess.run(endpoint_pubkey_command, capture_output = True, check = True)
+        endpoint_public_key = re.search(r"^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=", endpoint_pubkey_command_output.stdout).group()
     except Exception as e:
         raise Exception(f"failed to get endpoint public key with error {e}")
     else:
@@ -251,7 +307,7 @@ def add_peer():
             private_key, public_key, pre_shared_key = generate_peer_keys()
 
             save_peer_data(peer_name, private_key, ipv4_segment, public_key, pre_shared_key)
-            add_peer_to_wg_config(peer_name, public_key, pre_shared_key, ipv4_segment)
+            add_peer_to_wg_config(public_key, pre_shared_key, ipv4_segment)
 
             flash(f"{peer_name} was added successfully!", "info")
         else:
@@ -275,7 +331,7 @@ def delete_peer():
         if peer_name in peer_list:
             peer_data = get_peer_data(peer_name)
 
-            remove_peer_from_wg_config(peer_name, peer_data["public_key"], peer_data["pre_shared_key"], peer_data["ipv4_segment"])
+            remove_peer_from_wg_config(peer_data["public_key"], peer_data["ipv4_segment"])
 
             os.remove(os.path.join(CONFIG["PEER_DATA_DIR"], f"{peer_name}-data.json"))
 
