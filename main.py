@@ -75,6 +75,19 @@ def get_peer_data(peer_name):
         raise Exception(f"failed to get peer data with error [{e}]")
     else:
         return peer_data
+    
+def save_wg_config():
+    wg_quick_command = [
+        "sudo",
+        "wg-quick",
+        "save",
+        CONFIG["WG_INTERFACE_NAME"]
+    ]
+
+    try:
+        subprocess.run(wg_quick_command, text = True, check = True)
+    except Exception as e:
+        raise Exception(f"failed to save wireguard config with error {e}")
 
 def add_peer_to_wg_config(public_key, pre_shared_key, ipv4_segment):  
     wg_command = [
@@ -106,6 +119,8 @@ def add_peer_to_wg_config(public_key, pre_shared_key, ipv4_segment):
         subprocess.run(ip_command, check = True)
     except Exception as e:
         raise Exception(f"command failed to run! error {e}")
+    
+    save_wg_config()
         
 def remove_peer_from_wg_config(public_key, ipv4_segment):   
     wg_command = [
@@ -134,6 +149,8 @@ def remove_peer_from_wg_config(public_key, ipv4_segment):
         subprocess.run(ip_command, check = True)
     except Exception as e:
         raise Exception(f"command failed to run! error {e}")
+    
+    save_wg_config()
         
 def get_next_available_ip():
     wg_command = [
