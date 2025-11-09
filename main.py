@@ -21,8 +21,7 @@ CONFIG = {
     "WG_PEER_IPV4_BLOCK": "192.168.42."
 }
 
-PEER_ALL_TRAFFIC_TEMPLATE = """
-[Interface]
+PEER_ALL_TRAFFIC_TEMPLATE = """[Interface]
 PrivateKey = {private_key}
 Address = {ipv4_block}{ipv4_segment:d}/32
 
@@ -33,8 +32,7 @@ AllowedIPs = 0.0.0.0/0, ::/0
 Endpoint = wireguard.example.com:51820
 """
 
-PEER_LAN_TRAFFIC_TEMPLATE = """
-[Interface]
+PEER_LAN_TRAFFIC_TEMPLATE = """[Interface]
 PrivateKey = {private_key}
 Address = {ipv4_block}{ipv4_segment:d}/32
 
