@@ -413,5 +413,5 @@ def get_config(config_type, peer_name):
                 return response
         else:
             abort(404)
-    except Exception as e:
+    except:
         abort(500)
