@@ -41,7 +41,6 @@ Endpoint = wireguard.example.com:51820
 
 CONFIG = {
     "PEER_DATA_DIR": "peer-data",
-    "WG_CONFIG_FILE": "sample.conf",
     "WG_INTERFACE_NAME": "wg0"
 }
 
