@@ -172,8 +172,7 @@ def generate_peer_keys():
     pub_key_command = [
         "sudo",
         "wg",
-        "pubkey",
-        "/dev/stdin"
+        "pubkey"
     ]
 
     psk_command = [
