@@ -86,7 +86,7 @@ def save_wg_config():
     ]
 
     try:
-        subprocess.run(wg_quick_command, text = True, check = True)
+        subprocess.run(wg_quick_command, text = True, check = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
     except Exception as e:
         raise Exception(f"failed to save wireguard config with error [{e}]")
 
@@ -116,8 +116,8 @@ def add_peer_to_wg_config(public_key, pre_shared_key, ipv4_segment):
     ]
     
     try:
-        subprocess.run(wg_command, input = pre_shared_key, text = True, check = True)
-        subprocess.run(ip_command, check = True)
+        subprocess.run(wg_command, input = pre_shared_key, text = True, check = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+        subprocess.run(ip_command, check = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
     except Exception as e:
         raise Exception(f"command failed to run with error [{e}]")
     
@@ -146,8 +146,8 @@ def remove_peer_from_wg_config(public_key, ipv4_segment):
     ]
    
     try:
-        subprocess.run(wg_command, check = True)
-        subprocess.run(ip_command, check = True)
+        subprocess.run(wg_command, check = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+        subprocess.run(ip_command, check = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
     except Exception as e:
         raise Exception(f"command failed to run with error [{e}]")
     
