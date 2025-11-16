@@ -18,12 +18,13 @@ from qrcode.image.pure import PyPNGImage
 CONFIG = {
     "PEER_DATA_DIR": "peer-data",
     "WG_INTERFACE_NAME": "wg0",
-    "WG_PEER_IPV4_BLOCK": "192.168.42."
+    "WG_PEER_IPV4_PREFIX": "192.168.42.",
+    "WG_PEER_IPV6_PREFIX": "fd42:42:42::"
 }
 
 PEER_ALL_TRAFFIC_TEMPLATE = """[Interface]
 PrivateKey = {private_key}
-Address = {ipv4_block}{ipv4_segment:d}/32
+Address = {ipv4_prefix}{ipv4_segment:d}/32, {ipv6_prefix}{ipv4_segment:d}/128
 
 [Peer]
 PublicKey = {public_key}
@@ -34,12 +35,12 @@ Endpoint = wireguard.example.com:51820
 
 PEER_LAN_TRAFFIC_TEMPLATE = """[Interface]
 PrivateKey = {private_key}
-Address = {ipv4_block}{ipv4_segment:d}/32
+Address = {ipv4_prefix}{ipv4_segment:d}/32, {ipv6_prefix}{ipv4_segment:d}/128
 
 [Peer]
 PublicKey = {public_key}
 PresharedKey = {pre_shared_key}
-AllowedIPs = 192.168.2.0/24
+AllowedIPs = 192.168.2.0/24, fd4c:4b32:3132:0::/64
 Endpoint = wireguard.example.com:51820
 """
 
@@ -99,23 +100,35 @@ def add_peer_to_wg_config(public_key, pre_shared_key, ipv4_segment):
         "preshared-key",
         "/dev/stdin",
         "allowed-ips",
-        f"{CONFIG["WG_PEER_IPV4_BLOCK"]}{ipv4_segment}/32"
+        f"{CONFIG["WG_PEER_IPV4_PREFIX"]}{ipv4_segment}/32, {CONFIG["WG_PEER_IPV6_PREFIX"]}{ipv4_segment}/128"
     ]
 
-    ip_command = [
+    ipv4_command = [
         "sudo",
         "ip",
         "-4",
         "route",
         "add",
-        f"{CONFIG["WG_PEER_IPV4_BLOCK"]}{ipv4_segment}/32",
+        f"{CONFIG["WG_PEER_IPV4_PREFIX"]}{ipv4_segment}/32",
+        "dev",
+        CONFIG["WG_INTERFACE_NAME"]
+    ]
+
+    ipv6_command = [
+        "sudo",
+        "ip",
+        "-6",
+        "route",
+        "add",
+        f"{CONFIG["WG_PEER_IPV6_PREFIX"]}{ipv4_segment}/128",
         "dev",
         CONFIG["WG_INTERFACE_NAME"]
     ]
     
     try:
         subprocess.run(wg_command, input = pre_shared_key, text = True, check = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
-        subprocess.run(ip_command, check = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+        subprocess.run(ipv4_command, check = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+        subprocess.run(ipv6_command, check = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
     except Exception as e:
         raise Exception(f"command failed to run with error [{e}]")
     
@@ -132,26 +145,38 @@ def remove_peer_from_wg_config(public_key, ipv4_segment):
         "remove"
     ]
 
-    ip_command = [
+    ipv4_command = [
         "sudo",
         "ip",
         "-4",
         "route",
         "delete",
-        f"{CONFIG["WG_PEER_IPV4_BLOCK"]}{ipv4_segment}/32",
+        f"{CONFIG["WG_PEER_IPV4_PREFIX"]}{ipv4_segment}/32",
+        "dev",
+        CONFIG["WG_INTERFACE_NAME"]
+    ]
+
+    ipv6_command = [
+        "sudo",
+        "ip",
+        "-6",
+        "route",
+        "delete",
+        f"{CONFIG["WG_PEER_IPV6_PREFIX"]}{ipv4_segment}/128",
         "dev",
         CONFIG["WG_INTERFACE_NAME"]
     ]
    
     try:
         subprocess.run(wg_command, check = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
-        subprocess.run(ip_command, check = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+        subprocess.run(ipv4_command, check = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
+        subprocess.run(ipv6_command, check = True, stdout = subprocess.DEVNULL, stderr = subprocess.DEVNULL)
     except Exception as e:
         raise Exception(f"command failed to run with error [{e}]")
     
     save_wg_config()
         
-def get_next_available_ip():
+def get_next_available_ipv4_segment():
     wg_command = [
         "sudo",
         "wg",
@@ -165,24 +190,24 @@ def get_next_available_ip():
     except Exception as e:
         raise Exception(f"command failed to run with error [{e}]")
     
-    ip_segments = re.findall(r"^(?:[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=)\t(?:[0-9]{1,3}\.){3}([0-9]{1,3})", wg_show_output.stdout, flags = re.MULTILINE)
+    ipv4_segments = re.findall(r"^(?:[A-Za-z0-9+/]{42}[AEIMQUYcgkosw480]=)\t(?:[0-9]{1,3}\.){3}([0-9]{1,3})", wg_show_output.stdout, flags = re.MULTILINE)
 
-    next_ip = None
+    next_ipv4_segment = None
 
-    if ip_segments:
-        ip_segments_set = set(map(int, ip_segments))
+    if ipv4_segments:
+        ipv4_segments_set = set(map(int, ipv4_segments))
 
         for segment in range(2, 255):
-            if segment not in ip_segments_set:
-                next_ip = segment
+            if segment not in ipv4_segments_set:
+                next_ipv4_segment = segment
                 break
     else:
-        next_ip = 2
+        next_ipv4_segment = 2
 
-    if not next_ip:
+    if not next_ipv4_segment:
         raise Exception("no more ip's available in wireguard subnet. wow!")
     else:
-        return next_ip
+        return next_ipv4_segment
 
 def generate_peer_keys():
     priv_key_command = [
@@ -254,14 +279,16 @@ def get_peer_configs(peer_name):
     peer_data = get_peer_data(peer_name)
 
     peer_config_lan = PEER_LAN_TRAFFIC_TEMPLATE.format(private_key = peer_data["private_key"],
-                                                       ipv4_block = CONFIG["WG_PEER_IPV4_BLOCK"],
+                                                       ipv4_prefix = CONFIG["WG_PEER_IPV4_PREFIX"],
                                                        ipv4_segment = peer_data["ipv4_segment"],
+                                                       ipv6_prefix = CONFIG["WG_PEER_IPV6_PREFIX"],
                                                        public_key = get_endpoint_pubkey(),
                                                        pre_shared_key = peer_data["pre_shared_key"])
     
     peer_config_all = PEER_ALL_TRAFFIC_TEMPLATE.format(private_key = peer_data["private_key"],
-                                                       ipv4_block = CONFIG["WG_PEER_IPV4_BLOCK"],
+                                                       ipv4_prefix = CONFIG["WG_PEER_IPV4_PREFIX"],
                                                        ipv4_segment = peer_data["ipv4_segment"],
+                                                       ipv6_prefix = CONFIG["WG_PEER_IPV6_PREFIX"],
                                                        public_key = get_endpoint_pubkey(),
                                                        pre_shared_key = peer_data["pre_shared_key"])
     
@@ -351,7 +378,7 @@ def add_peer():
         peer_list = get_list_of_peers()
 
         if peer_name not in peer_list:
-            ipv4_segment = get_next_available_ip()
+            ipv4_segment = get_next_available_ipv4_segment()
             private_key, public_key, pre_shared_key = generate_peer_keys()
 
             save_peer_data(peer_name, private_key, ipv4_segment, public_key, pre_shared_key)
