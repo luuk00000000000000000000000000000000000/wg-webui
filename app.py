@@ -25,6 +25,7 @@ CONFIG = {
 PEER_ALL_TRAFFIC_TEMPLATE = """[Interface]
 PrivateKey = {private_key}
 Address = {ipv4_prefix}{ipv4_segment:d}/32, {ipv6_prefix}{ipv4_segment:d}/128
+DNS = 1.1.1.1, 1.0.0.1, 2606:4700:4700::1111, 2606:4700:4700::1001
 
 [Peer]
 PublicKey = {public_key}
